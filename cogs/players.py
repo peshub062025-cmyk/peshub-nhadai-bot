@@ -1,3 +1,16 @@
+import discord
+
+from discord import app_commands
+from discord.ext import commands
+
+from sqlalchemy.orm import Session
+
+from database.db import SessionLocal
+from database.models import Player
+
+from utils.checks import check_admin
+from utils.checks import check_channel
+
 from ui.player_modal import PlayerModal
 @app_commands.command(
     name="themnguoi",
