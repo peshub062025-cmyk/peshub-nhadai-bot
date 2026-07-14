@@ -1,14 +1,18 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+# SQLite Database
+DATABASE_URL = "sqlite:///database/peshub.db"
 
 engine = create_engine(
-    "sqlite:///database/peshub.db",
-    echo=False,
-    future=True
+    DATABASE_URL,
+    connect_args={"check_same_thread": False}
 )
 
 SessionLocal = sessionmaker(
-    bind=engine,
+    autocommit=False,
     autoflush=False,
-    autocommit=False
+    bind=engine
 )
+
+Base = declarative_base()
