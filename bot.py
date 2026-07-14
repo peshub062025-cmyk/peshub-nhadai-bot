@@ -72,7 +72,26 @@ async def main():
         await load_extensions()
 
         await bot.start(TOKEN)
+from threading import Thread
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import os
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"NHA DAI PESHUB ONLINE")
+
+    def log_message(self, format, *args):
+        return  # Tắt log HTTP
+
+def run_webserver():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    server.serve_forever()
+
+# Khởi động webserver trên thread riêng
+Thread(target=run_webserver, daemon=True).start()
 
 asyncio.run(main())
 
