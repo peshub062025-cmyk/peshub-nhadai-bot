@@ -4,26 +4,20 @@ from sqlalchemy.orm import sessionmaker
 
 from config import DATABASE_URL
 
-# Engine kết nối PostgreSQL
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True
-)
-
-# Session dùng để thao tác với database
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
-
-# Base cho các Model
 Base = declarative_base()
 
+engine = None
+SessionLocal = None
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+if DATABASE_URL:
+
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True
+    )
+
+    SessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine
+    )
