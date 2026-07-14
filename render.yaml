@@ -1,5 +1,5 @@
 services:
-  - type: web
+  - type: worker
     name: nha-dai-peshub
     env: python
     buildCommand: pip install -r requirements.txt
