@@ -1,82 +1,44 @@
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import Boolean
-from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-
-from datetime import datetime
 
 from database.db import Base
 
 
-# ==========================
+# =========================
 # Người chơi
-# ==========================
-
+# =========================
 class Player(Base):
-
     __tablename__ = "players"
 
-    id = Column(Integer, primary_key=True)
-
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False)
 
-    active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-# ==========================
+# =========================
 # Mùa giải
-# ==========================
-
+# =========================
 class Season(Base):
-
     __tablename__ = "seasons"
 
-    id = Column(Integer, primary_key=True)
-
-    name = Column(String(50), unique=True)
-
-    current = Column(Boolean, default=False)
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
 
 
-# ==========================
+# =========================
 # Trận đấu
-# ==========================
-
+# =========================
 class Match(Base):
-
     __tablename__ = "matches"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
 
-    season_id = Column(
-        Integer,
-        ForeignKey("seasons.id")
-    )
+    season_id = Column(Integer, ForeignKey("seasons.id"))
+    player1_id = Column(Integer, ForeignKey("players.id"))
+    player2_id = Column(Integer, ForeignKey("players.id"))
 
-    player1_id = Column(
-        Integer,
-        ForeignKey("players.id")
-    )
+    round = Column(String(50), nullable=False)
 
-    player2_id = Column(
-        Integer,
-        ForeignKey("players.id")
-    )
-
-    round = Column(String(30))
-
-    youtube_id = Column(String(30))
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow
-    )
+    youtube_link = Column(String(500), nullable=False)
 
     season = relationship("Season")
 
