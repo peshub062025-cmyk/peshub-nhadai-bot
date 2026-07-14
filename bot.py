@@ -56,6 +56,24 @@ async def ping(interaction: discord.Interaction):
         embed=embed,
         ephemeral=True
     )
+import asyncio
+
+async def load_extensions():
+
+    await bot.load_extension(
+        "cogs.players"
+    )
 
 
-bot.run(TOKEN)
+async def main():
+
+    async with bot:
+
+        await load_extensions()
+
+        await bot.start(TOKEN)
+
+
+asyncio.run(main())
+
+
