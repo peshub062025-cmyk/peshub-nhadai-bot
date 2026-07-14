@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-
+from database.init_db import create_database
 from config import TOKEN
 
 intents = discord.Intents.default()
@@ -16,6 +16,7 @@ bot = commands.Bot(
 
 @bot.event
 async def on_ready():
+    create_database()
     print("=" * 40)
     print("🎥 NHÀ ĐÀI PESHUB")
     print(f"Đăng nhập thành công với tài khoản: {bot.user}")
