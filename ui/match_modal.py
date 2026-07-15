@@ -2,7 +2,7 @@ import discord
 from sqlalchemy.orm import Session
 
 from database.db import SessionLocal
-from database.models import Match
+from database.models import Match, Player, Season
 
 
 class MatchModal(discord.ui.Modal, title="🎥 Thêm trận đấu"):
