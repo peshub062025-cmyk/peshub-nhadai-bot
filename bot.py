@@ -60,10 +60,8 @@ import asyncio
 
 async def load_extensions():
 
-    await bot.load_extension(
-        "cogs.players"
-    )
-
+   await bot.load_extension("cogs.players")
+   await bot.load_extension("cogs.seasons")
 
 async def main():
 
