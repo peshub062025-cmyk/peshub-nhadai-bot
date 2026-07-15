@@ -62,7 +62,8 @@ async def load_extensions():
 
    await bot.load_extension("cogs.players")
    await bot.load_extension("cogs.seasons")
-
+   await bot.load_extension("cogs.matches")
+    
 async def main():
 
     async with bot:
