@@ -48,56 +48,57 @@ class MatchModal(discord.ui.Modal, title="🎥 Thêm trận đấu"):
 
             db.add(new_match)
             db.commit()
+            
+                  season = db.query(Season).filter(
+            Season.id == self.season_id
+            ).first()
 
-            season = db.query(Season).filter(
-    Season.id == self.season_id
-).first()
+            player1 = db.query(Player).filter(
+            Player.id == self.player1_id
+            ).first()
 
-player1 = db.query(Player).filter(
-    Player.id == self.player1_id
-).first()
+            player2 = db.query(Player).filter(
+            Player.id == self.player2_id
+            ).first()
 
-player2 = db.query(Player).filter(
-    Player.id == self.player2_id
-).first()
+           embed = discord.Embed(
+           title="🎥 NHÀ ĐÀI PESHUB",
+           description="✅ **ĐÃ LƯU TRẬN ĐẤU**",
+           color=discord.Color.green()
+            )
 
-embed = discord.Embed(
-    title="🎥 NHÀ ĐÀI PESHUB",
-    description="✅ **ĐÃ LƯU TRẬN ĐẤU**",
-    color=discord.Color.green()
-)
+          embed.add_field(
+          name="🏆 Mùa giải",
+          value=season.name,
+          inline=False
+          )
 
-embed.add_field(
-    name="🏆 Mùa giải",
-    value=season.name,
-    inline=False
-)
+         embed.add_field(
+         name="🥇 Vòng đấu",
+         value=self.round_name,
+         inline=False
+         )
 
-embed.add_field(
-    name="🥇 Vòng đấu",
-    value=self.round_name,
-    inline=False
-)
+         embed.add_field(
+         name="👥 Trận đấu",
+         value=f"**{player1.name}** 🆚 **{player2.name}**",
+         inline=False
+         )
 
-embed.add_field(
-    name="👥 Trận đấu",
-    value=f"**{player1.name}** 🆚 **{player2.name}**",
-    inline=False
-)
+        embed.add_field(
+       name="🎥 Link video",
+       value=self.youtube_link.value.strip(),
+       inline=False
+       )
 
-embed.add_field(
-    name="🎥 Link video",
-    value=self.youtube_link.value.strip(),
-    inline=False
-)
+       embed.set_footer(
+       text="NHÀ ĐÀI PESHUB • Đã lưu vào hệ thống"
+       )
 
-embed.set_footer(
-    text="NHÀ ĐÀI PESHUB • Đã lưu vào hệ thống"
-)
+       await interaction.response.send_message(
+      embed=embed
+       )
 
-await interaction.response.send_message(
-    embed=embed
-)
 
         except Exception as e:
 
