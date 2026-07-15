@@ -1,9 +1,8 @@
-from database.db import Base, engine
+from database.db import Base
+from database.db import engine
 
-# Import tất cả models để SQLAlchemy biết cần tạo bảng nào
-from database.models import Player, Season, Match
+import database.models
 
 
 def create_database():
     Base.metadata.create_all(bind=engine)
-    print("✅ SQLite database đã sẵn sàng.")
