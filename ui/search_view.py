@@ -94,7 +94,8 @@ class Player2Select(discord.ui.Select):
         self.view.player2_id = int(self.values[0])
 
         await interaction.response.defer()
-        class SearchButton(discord.ui.Button):
+
+class SearchButton(discord.ui.Button):
 
     def __init__(self):
         super().__init__(
