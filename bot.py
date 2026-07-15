@@ -25,6 +25,8 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"✅ Đã đồng bộ {len(synced)} Slash Commands.")
+        for cmd in synced:
+    print(f"➡ {cmd.name}")
     except Exception as e:
         print("❌ Lỗi đồng bộ Slash Commands:")
         print(e)
