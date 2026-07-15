@@ -1,106 +1,283 @@
 import discord
 
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
 from database.db import SessionLocal
-from database.models import Season, Player
+from database.models import Match, Player, Season
 
 
-class SearchView(discord.ui.View):
+class SeasonSelect(discord.ui.Select):
+
+    def __init__(self, seasons):
+
+        options = []
+
+        for season in seasons:
+            options.append(
+                discord.SelectOption(
+                    label=season.name,
+                    value=str(season.id)
+                )
+            )
+
+        super().__init__(
+            placeholder="🏆 Chọn mùa giải",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+
+        self.view.season_id = int(self.values[0])
+
+        await interaction.response.defer()
+
+
+class Player1Select(discord.ui.Select):
+
+    def __init__(self, players):
+
+        options = []
+
+        for player in players:
+            options.append(
+                discord.SelectOption(
+                    label=player.name,
+                    value=str(player.id)
+                )
+            )
+
+        super().__init__(
+            placeholder="👤 Người chơi 1",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction):
+
+        self.view.player1_id = int(self.values[0])
+
+        await interaction.response.defer()
+
+
+class Player2Select(discord.ui.Select):
+
+    def __init__(self, players):
+
+        options = [
+            discord.SelectOption(
+                label="Không chọn",
+                value="0"
+            )
+        ]
+
+        for player in players:
+            options.append(
+                discord.SelectOption(
+                    label=player.name,
+                    value=str(player.id)
+                )
+            )
+
+        super().__init__(
+            placeholder="👤 Người chơi 2 (không bắt buộc)",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction):
+
+        self.view.player2_id = int(self.values[0])
+
+        await interaction.response.defer()
+        class SearchButton(discord.ui.Button):
 
     def __init__(self):
-        super().__init__(timeout=300)
+        super().__init__(
+            label="🔍 Tìm kiếm",
+            style=discord.ButtonStyle.green
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+
+        if self.view.season_id is None:
+            await interaction.response.send_message(
+                "⚠ Hãy chọn mùa giải.",
+                ephemeral=True
+            )
+            return
+
+        if self.view.player1_id is None:
+            await interaction.response.send_message(
+                "⚠ Hãy chọn Người chơi 1.",
+                ephemeral=True
+            )
+            return
 
         db: Session = SessionLocal()
 
         try:
 
-            # ===== Mùa giải =====
-            season_options = []
+            season = db.query(Season).filter(
+                Season.id == self.view.season_id
+            ).first()
 
-            seasons = db.query(Season).order_by(Season.name).all()
+            player1 = db.query(Player).filter(
+                Player.id == self.view.player1_id
+            ).first()
 
-            for season in seasons:
-                season_options.append(
-                    discord.SelectOption(
-                        label=season.name,
-                        value=str(season.id)
+            player2 = None
+
+            if self.view.player2_id != 0:
+                player2 = db.query(Player).filter(
+                    Player.id == self.view.player2_id
+                ).first()
+
+            # ==========================
+            # Truy vấn
+            # ==========================
+
+            if self.view.player2_id == 0:
+
+                matches = db.query(Match).filter(
+                    Match.season_id == self.view.season_id,
+                    or_(
+                        Match.player1_id == self.view.player1_id,
+                        Match.player2_id == self.view.player1_id
                     )
-                )
+                ).all()
 
-            if not season_options:
-                season_options.append(
-                    discord.SelectOption(
-                        label="Chưa có mùa giải",
-                        value="0"
+            else:
+
+                matches = db.query(Match).filter(
+                    Match.season_id == self.view.season_id,
+                    or_(
+
+                        and_(
+                            Match.player1_id == self.view.player1_id,
+                            Match.player2_id == self.view.player2_id
+                        ),
+
+                        and_(
+                            Match.player1_id == self.view.player2_id,
+                            Match.player2_id == self.view.player1_id
+                        )
+
                     )
+                ).all()
+
+            if not matches:
+
+                await interaction.response.send_message(
+                    "❌ Không tìm thấy trận đấu nào.",
+                    ephemeral=True
+                )
+                return
+
+            embed = discord.Embed(
+                title="🎥 NHÀ ĐÀI PESHUB",
+                color=discord.Color.blue()
+            )
+
+            embed.add_field(
+                name="🏆 Mùa",
+                value=season.name,
+                inline=False
+            )
+
+            if player2:
+
+                embed.add_field(
+                    name="👥 Người chơi",
+                    value=f"{player1.name} 🆚 {player2.name}",
+                    inline=False
                 )
 
-            # ===== Người chơi =====
-            player_options = [
-                discord.SelectOption(
-                    label="Không chọn",
-                    value="0"
-                )
-            ]
+            else:
 
-            players = db.query(Player).order_by(Player.name).all()
-
-            for player in players:
-                player_options.append(
-                    discord.SelectOption(
-                        label=player.name,
-                        value=str(player.id)
-                    )
+                embed.add_field(
+                    name="👤 Người chơi",
+                    value=player1.name,
+                    inline=False
                 )
+
+            text = ""
+
+            for match in matches:
+
+                p1 = db.query(Player).filter(
+                    Player.id == match.player1_id
+                ).first()
+
+                p2 = db.query(Player).filter(
+                    Player.id == match.player2_id
+                ).first()
+
+                text += (
+                    f"🥇 {match.round}\n"
+                    f"⚔ {p1.name} 🆚 {p2.name}\n"
+                    f"🎥 {match.youtube_link}\n\n"
+                )
+
+            embed.description = text
+
+            embed.set_footer(
+                text=f"Tìm thấy {len(matches)} trận đấu"
+            )
+
+            await interaction.response.send_message(
+                embed=embed
+            )
+
+        except Exception as e:
+
+            await interaction.response.send_message(
+                f"❌ {e}",
+                ephemeral=True
+            )
+
+        finally:
+            db.close()
+            class SearchView(discord.ui.View):
+
+    def __init__(self):
+        super().__init__(timeout=300)
+
+        self.season_id = None
+        self.player1_id = None
+        self.player2_id = 0
+
+        db: Session = SessionLocal()
+
+        try:
+
+            seasons = db.query(Season).order_by(
+                Season.name
+            ).all()
+
+            players = db.query(Player).order_by(
+                Player.name
+            ).all()
 
         finally:
             db.close()
 
-        # =========================
-        # Mùa giải
-        # =========================
-
         self.add_item(
-            discord.ui.Select(
-                placeholder="🏆 Chọn mùa giải",
-                custom_id="season",
-                options=season_options
-            )
+            SeasonSelect(seasons)
         )
 
-        # =========================
-        # Người chơi 1
-        # =========================
-
         self.add_item(
-            discord.ui.Select(
-                placeholder="👤 Chọn Người chơi 1",
-                custom_id="player1",
-                options=player_options[1:]
-            )
+            Player1Select(players)
         )
 
-        # =========================
-        # Người chơi 2
-        # =========================
-
         self.add_item(
-            discord.ui.Select(
-                placeholder="👤 Chọn Người chơi 2 (không bắt buộc)",
-                custom_id="player2",
-                options=player_options
-            )
+            Player2Select(players)
         )
 
-        # =========================
-        # Nút tìm kiếm
-        # =========================
-
         self.add_item(
-            discord.ui.Button(
-                label="🔍 Tìm kiếm",
-                style=discord.ButtonStyle.green,
-                custom_id="search"
-            )
+            SearchButton()
         )
