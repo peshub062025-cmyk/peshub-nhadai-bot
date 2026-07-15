@@ -243,7 +243,7 @@ class SearchButton(discord.ui.Button):
 
         finally:
             db.close()
-            class SearchView(discord.ui.View):
+class SearchView(discord.ui.View):
 
     def __init__(self):
         super().__init__(timeout=300)
