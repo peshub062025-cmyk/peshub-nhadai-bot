@@ -1,17 +1,26 @@
 import discord
 
-from sqlalchemy import or_, and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from database.db import SessionLocal
 from database.models import Match, Player, Season
 
 
+# =========================
+# Chọn mùa
+# =========================
+
 class SeasonSelect(discord.ui.Select):
 
     def __init__(self, seasons):
 
-        options = []
+        options = [
+            discord.SelectOption(
+                label="Tất cả các mùa",
+                value="0"
+            )
+        ]
 
         for season in seasons:
             options.append(
@@ -22,7 +31,7 @@ class SeasonSelect(discord.ui.Select):
             )
 
         super().__init__(
-            placeholder="🏆 Chọn mùa giải",
+            placeholder="🏆 Mùa giải",
             min_values=1,
             max_values=1,
             options=options
@@ -30,16 +39,30 @@ class SeasonSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
 
-        self.view.season_id = int(self.values[0])
+        value = int(self.values[0])
+
+        if value == 0:
+            self.view.season_id = None
+        else:
+            self.view.season_id = value
 
         await interaction.response.defer()
 
+
+# =========================
+# Người chơi 1
+# =========================
 
 class Player1Select(discord.ui.Select):
 
     def __init__(self, players):
 
-        options = []
+        options = [
+            discord.SelectOption(
+                label="Tất cả người chơi",
+                value="0"
+            )
+        ]
 
         for player in players:
             options.append(
@@ -56,12 +79,21 @@ class Player1Select(discord.ui.Select):
             options=options
         )
 
-    async def callback(self, interaction):
+    async def callback(self, interaction: discord.Interaction):
 
-        self.view.player1_id = int(self.values[0])
+        value = int(self.values[0])
+
+        if value == 0:
+            self.view.player1_id = None
+        else:
+            self.view.player1_id = value
 
         await interaction.response.defer()
 
+
+# =========================
+# Người chơi 2
+# =========================
 
 class Player2Select(discord.ui.Select):
 
@@ -89,11 +121,19 @@ class Player2Select(discord.ui.Select):
             options=options
         )
 
-    async def callback(self, interaction):
+    async def callback(self, interaction: discord.Interaction):
 
-        self.view.player2_id = int(self.values[0])
+        value = int(self.values[0])
+
+        if value == 0:
+            self.view.player2_id = 0
+        else:
+            self.view.player2_id = value
 
         await interaction.response.defer()
+# =========================
+# Nút tìm kiếm
+# =========================
 
 class SearchButton(discord.ui.Button):
 
@@ -107,90 +147,87 @@ class SearchButton(discord.ui.Button):
 
         if self.view.season_id is None and self.view.player1_id is None:
 
-        await interaction.response.send_message(
-        "⚠ Hãy chọn ít nhất Mùa giải hoặc Người chơi 1.",
-        ephemeral=True
-    )
-    return
+            await interaction.response.send_message(
+                "⚠ Hãy chọn ít nhất Mùa giải hoặc Người chơi 1.",
+                ephemeral=True
+            )
+            return
 
         db: Session = SessionLocal()
 
         try:
 
-            season = db.query(Season).filter(
-                Season.id == self.view.season_id
-            ).first()
-
-            player1 = db.query(Player).filter(
-                Player.id == self.view.player1_id
-            ).first()
-
+            season = None
+            player1 = None
             player2 = None
+
+            if self.view.season_id is not None:
+                season = db.query(Season).filter(
+                    Season.id == self.view.season_id
+                ).first()
+
+            if self.view.player1_id is not None:
+                player1 = db.query(Player).filter(
+                    Player.id == self.view.player1_id
+                ).first()
 
             if self.view.player2_id != 0:
                 player2 = db.query(Player).filter(
                     Player.id == self.view.player2_id
                 ).first()
 
-          # ==========================
-          # Truy vấn
-          # ==========================
+            query = db.query(Match)
 
-          # Chỉ chọn mùa
-if self.view.season_id is not None and self.view.player1_id is None:
+            # =========================
+            # Lọc theo mùa
+            # =========================
 
-         matches = db.query(Match).filter(
-        Match.season_id == self.view.season_id
-    ).all()
+            if self.view.season_id is not None:
+                query = query.filter(
+                    Match.season_id == self.view.season_id
+                )
 
-         # Chỉ chọn Người 1
-        elif self.view.season_id is None and self.view.player2_id == 0:
+            # =========================
+            # Chỉ chọn Người 1
+            # =========================
 
-         matches = db.query(Match).filter(
-        or_(
-            Match.player1_id == self.view.player1_id,
-            Match.player2_id == self.view.player1_id
-        )
-        ).all()
+            if player1 and self.view.player2_id == 0:
 
-        # Mùa + Người 1
-        elif self.view.season_id is not None and self.view.player2_id == 0:
+                query = query.filter(
+                    or_(
+                        Match.player1_id == player1.id,
+                        Match.player2_id == player1.id
+                    )
+                )
 
-        matches = db.query(Match).filter(
-        Match.season_id == self.view.season_id,
-        or_(
-            Match.player1_id == self.view.player1_id,
-            Match.player2_id == self.view.player1_id
-        )
-        ).all()
+            # =========================
+            # Chọn đủ 2 người
+            # =========================
 
-       # Hai người (có hoặc không có mùa)
-       else:
+            elif player1 and player2:
 
-      query = db.query(Match)
+                query = query.filter(
+                    or_(
 
-    if self.view.season_id is not None:
-        query = query.filter(
-            Match.season_id == self.view.season_id
-        )
+                        and_(
+                            Match.player1_id == player1.id,
+                            Match.player2_id == player2.id
+                        ),
 
-       matches = query.filter(
-        or_(
-            and_(
-                Match.player1_id == self.view.player1_id,
-                Match.player2_id == self.view.player2_id
-            ),
-            and_(
-                Match.player1_id == self.view.player2_id,
-                Match.player2_id == self.view.player1_id
-            )
-        )
-        ).all()
+                        and_(
+                            Match.player1_id == player2.id,
+                            Match.player2_id == player1.id
+                        )
+
+                    )
+                )
+
+            matches = query.order_by(Match.id.desc()).all()
 
             if not matches:
 
                 await interaction.response.send_message(
-                    "❌ Không tìm thấy trận đấu nào.",
+                    "❌ Không tìm thấy trận đấu.",
                     ephemeral=True
                 )
                 return
@@ -200,13 +237,35 @@ if self.view.season_id is not None and self.view.player1_id is None:
                 color=discord.Color.blue()
             )
 
-            embed.add_field(
-                name="🏆 Mùa",
-                value=season.name,
-                inline=False
-            )
+            # =========================
+            # Thông tin tìm kiếm
+            # =========================
 
-            if player2:
+            if season:
+
+                embed.add_field(
+                    name="🏆 Mùa",
+                    value=season.name,
+                    inline=False
+                )
+
+            else:
+
+                embed.add_field(
+                    name="🏆 Mùa",
+                    value="Tất cả các mùa",
+                    inline=False
+                )
+
+            if player1 is None:
+
+                embed.add_field(
+                    name="👥 Người chơi",
+                    value="Tất cả người chơi",
+                    inline=False
+                )
+
+            elif player2:
 
                 embed.add_field(
                     name="👥 Người chơi",
@@ -222,7 +281,7 @@ if self.view.season_id is not None and self.view.player1_id is None:
                     inline=False
                 )
 
-            text = ""
+            description = ""
 
             for match in matches:
 
@@ -234,13 +293,18 @@ if self.view.season_id is not None and self.view.player1_id is None:
                     Player.id == match.player2_id
                 ).first()
 
-                text += (
+                s = db.query(Season).filter(
+                    Season.id == match.season_id
+                ).first()
+
+                description += (
+                    f"🏆 {s.name}\n"
                     f"🥇 {match.round}\n"
-                    f"⚔ {p1.name} 🆚 {p2.name}\n"
+                    f"⚔ **{p1.name}** 🆚 **{p2.name}**\n"
                     f"🎥 {match.youtube_link}\n\n"
                 )
 
-            embed.description = text
+            embed.description = description
 
             embed.set_footer(
                 text=f"Tìm thấy {len(matches)} trận đấu"
@@ -259,9 +323,14 @@ if self.view.season_id is not None and self.view.player1_id is None:
 
         finally:
             db.close()
+# =========================
+# Search View
+# =========================
+
 class SearchView(discord.ui.View):
 
     def __init__(self):
+
         super().__init__(timeout=300)
 
         self.season_id = None
@@ -273,7 +342,7 @@ class SearchView(discord.ui.View):
         try:
 
             seasons = db.query(Season).order_by(
-                Season.name
+                Season.id.desc()
             ).all()
 
             players = db.query(Player).order_by(
