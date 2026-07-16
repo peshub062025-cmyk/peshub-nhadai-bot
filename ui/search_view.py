@@ -105,19 +105,13 @@ class SearchButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
 
-        if self.view.season_id is None:
-            await interaction.response.send_message(
-                "⚠ Hãy chọn mùa giải.",
-                ephemeral=True
-            )
-            return
+        if self.view.season_id is None and self.view.player1_id is None:
 
-        if self.view.player1_id is None:
-            await interaction.response.send_message(
-                "⚠ Hãy chọn Người chơi 1.",
-                ephemeral=True
-            )
-            return
+        await interaction.response.send_message(
+        "⚠ Hãy chọn ít nhất Mùa giải hoặc Người chơi 1.",
+        ephemeral=True
+    )
+    return
 
         db: Session = SessionLocal()
 
@@ -138,38 +132,60 @@ class SearchButton(discord.ui.Button):
                     Player.id == self.view.player2_id
                 ).first()
 
-            # ==========================
-            # Truy vấn
-            # ==========================
+          # ==========================
+          # Truy vấn
+          # ==========================
 
-            if self.view.player2_id == 0:
+          # Chỉ chọn mùa
+if self.view.season_id is not None and self.view.player1_id is None:
 
-                matches = db.query(Match).filter(
-                    Match.season_id == self.view.season_id,
-                    or_(
-                        Match.player1_id == self.view.player1_id,
-                        Match.player2_id == self.view.player1_id
-                    )
-                ).all()
+         matches = db.query(Match).filter(
+        Match.season_id == self.view.season_id
+    ).all()
 
-            else:
+         # Chỉ chọn Người 1
+        elif self.view.season_id is None and self.view.player2_id == 0:
 
-                matches = db.query(Match).filter(
-                    Match.season_id == self.view.season_id,
-                    or_(
+         matches = db.query(Match).filter(
+        or_(
+            Match.player1_id == self.view.player1_id,
+            Match.player2_id == self.view.player1_id
+        )
+        ).all()
 
-                        and_(
-                            Match.player1_id == self.view.player1_id,
-                            Match.player2_id == self.view.player2_id
-                        ),
+        # Mùa + Người 1
+        elif self.view.season_id is not None and self.view.player2_id == 0:
 
-                        and_(
-                            Match.player1_id == self.view.player2_id,
-                            Match.player2_id == self.view.player1_id
-                        )
+        matches = db.query(Match).filter(
+        Match.season_id == self.view.season_id,
+        or_(
+            Match.player1_id == self.view.player1_id,
+            Match.player2_id == self.view.player1_id
+        )
+        ).all()
 
-                    )
-                ).all()
+       # Hai người (có hoặc không có mùa)
+       else:
+
+      query = db.query(Match)
+
+    if self.view.season_id is not None:
+        query = query.filter(
+            Match.season_id == self.view.season_id
+        )
+
+       matches = query.filter(
+        or_(
+            and_(
+                Match.player1_id == self.view.player1_id,
+                Match.player2_id == self.view.player2_id
+            ),
+            and_(
+                Match.player1_id == self.view.player2_id,
+                Match.player2_id == self.view.player1_id
+            )
+        )
+        ).all()
 
             if not matches:
 
