@@ -3,7 +3,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from utils.checks import check_admin
 from utils.checks import check_channel
 
 from ui.match_view import MatchView
@@ -24,9 +23,6 @@ class Matches(commands.Cog):
     ):
 
         if not await check_channel(interaction):
-            return
-
-        if not await check_admin(interaction):
             return
 
         embed = discord.Embed(
