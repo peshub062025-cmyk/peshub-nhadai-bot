@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from database.db import SessionLocal
 from database.models import Match, Player, Season
+from ui.search_result_view import SearchResultView
 
 
 # =========================
@@ -304,16 +305,12 @@ class SearchButton(discord.ui.Button):
                     f"🎥 {match.youtube_link}\n\n"
                 )
 
-            embed.description = description
+           view = SearchResultView(matches)
 
-            embed.set_footer(
-                text=f"Tìm thấy {len(matches)} trận đấu"
-            )
-
-            await interaction.response.send_message(
-                embed=embed
-            )
-
+          await interaction.response.send_message(
+               embed=view.build_embed(),
+               view=view
+          )
         except Exception as e:
 
             await interaction.response.send_message(
