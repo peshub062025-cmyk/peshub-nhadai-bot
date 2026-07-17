@@ -1,4 +1,5 @@
 import discord
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from database.db import SessionLocal
@@ -21,6 +22,7 @@ class MatchModal(discord.ui.Modal, title="🎥 Thêm trận đấu"):
         player1_id: int,
         player2_id: int
     ):
+
         super().__init__()
 
         self.season_id = season_id
@@ -36,6 +38,84 @@ class MatchModal(discord.ui.Modal, title="🎥 Thêm trận đấu"):
         db: Session = SessionLocal()
 
         try:
+
+            # =========================
+            # Kiểm tra trận đã tồn tại
+            # =========================
+
+            match = db.query(Match).filter(
+
+                Match.season_id == self.season_id,
+                Match.round == self.round_name,
+
+                or_(
+
+                    and_(
+                        Match.player1_id == self.player1_id,
+                        Match.player2_id == self.player2_id
+                    ),
+
+                    and_(
+                        Match.player1_id == self.player2_id,
+                        Match.player2_id == self.player1_id
+                    )
+
+                )
+
+            ).first()
+
+            if match:
+
+                season = db.query(Season).filter(
+                    Season.id == self.season_id
+                ).first()
+
+                player1 = db.query(Player).filter(
+                    Player.id == self.player1_id
+                ).first()
+
+                player2 = db.query(Player).filter(
+                    Player.id == self.player2_id
+                ).first()
+
+                embed = discord.Embed(
+                    title="⚠ TRẬN ĐẤU ĐÃ TỒN TẠI",
+                    description="Trận đấu này đã được lưu trước đó.",
+                    color=discord.Color.orange()
+                )
+
+                embed.add_field(
+                    name="🏆 Mùa giải",
+                    value=season.name,
+                    inline=False
+                )
+
+                embed.add_field(
+                    name="🥇 Vòng đấu",
+                    value=self.round_name,
+                    inline=False
+                )
+
+                embed.add_field(
+                    name="👥 Trận đấu",
+                    value=f"**{player1.name}** 🆚 **{player2.name}**",
+                    inline=False
+                )
+
+                embed.set_footer(
+                    text="NHÀ ĐÀI PESHUB"
+                )
+
+                await interaction.response.send_message(
+                    embed=embed,
+                    ephemeral=True
+                )
+
+                return
+
+            # =========================
+            # Lưu trận mới
+            # =========================
 
             new_match = Match(
                 season_id=self.season_id,
