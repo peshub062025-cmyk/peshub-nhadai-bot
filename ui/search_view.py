@@ -305,7 +305,7 @@ class SearchButton(discord.ui.Button):
                     f"🎥 {match.youtube_link}\n\n"
                 )
 
-             view = SearchResultView(matches)
+            view = SearchResultView(matches)
 
              await interaction.response.send_message(
                   embed=view.build_embed(),
