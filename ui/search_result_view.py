@@ -14,24 +14,30 @@ class SearchResultView(discord.ui.View):
         super().__init__(timeout=300)
 
         self.matches = matches
-
         self.page = 0
-
         self.page_size = 10
-       
-        self.add_item(
-            PreviousButton()
-         )
 
-        self.add_item(
-            NextButton()
-         )
+        self.previous_button = PreviousButton()
+        self.next_button = NextButton()
 
-    # =========================
-    # Tạo Embed
-    # =========================
+        self.add_item(self.previous_button)
+        self.add_item(self.next_button)
+
+        self.update_buttons()
+
+    def update_buttons(self):
+
+        total_pages = max(
+            math.ceil(len(self.matches) / self.page_size),
+            1
+        )
+
+        self.previous_button.disabled = self.page == 0
+        self.next_button.disabled = self.page >= total_pages - 1
 
     def build_embed(self):
+
+        self.update_buttons()
 
         embed = discord.Embed(
             title="🎥 NHÀ ĐÀI PESHUB",
@@ -39,13 +45,12 @@ class SearchResultView(discord.ui.View):
         )
 
         total_matches = len(self.matches)
-
-        total_pages = math.ceil(
-            total_matches / self.page_size
+        total_pages = max(
+            math.ceil(total_matches / self.page_size),
+            1
         )
 
         start = self.page * self.page_size
-
         end = start + self.page_size
 
         page_matches = self.matches[start:end]
@@ -77,16 +82,23 @@ class SearchResultView(discord.ui.View):
                     f"🎥 {match.youtube_link}\n\n"
                 )
 
+            if description == "":
+                description = "Không có dữ liệu."
+
             embed.description = description
 
             embed.set_footer(
                 text=(
                     f"Trang {self.page + 1}/{total_pages} • "
-                    f"Hiển thị {min(end, total_matches)}/{total_matches} trận"
+                    f"{total_matches} trận đấu"
                 )
             )
 
             return embed
+
+        finally:
+            db.close()
+
 
 class PreviousButton(discord.ui.Button):
 
@@ -100,8 +112,9 @@ class PreviousButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
 
         if self.view.page > 0:
-
             self.view.page -= 1
+
+        self.view.update_buttons()
 
         await interaction.response.edit_message(
             embed=self.view.build_embed(),
@@ -114,24 +127,26 @@ class NextButton(discord.ui.Button):
     def __init__(self):
 
         super().__init__(
-            label="➡ Xem thêm",
+            label="➡ Trang sau",
             style=discord.ButtonStyle.primary
         )
 
     async def callback(self, interaction: discord.Interaction):
 
-        total_pages = (
-            len(self.view.matches) - 1
-        ) // self.view.page_size
+        total_pages = max(
+            math.ceil(
+                len(self.view.matches) /
+                self.view.page_size
+            ),
+            1
+        )
 
-        if self.view.page < total_pages:
-
+        if self.view.page < total_pages - 1:
             self.view.page += 1
+
+        self.view.update_buttons()
 
         await interaction.response.edit_message(
             embed=self.view.build_embed(),
             view=self.view
         )
-
-        finally:
-            db.close()
