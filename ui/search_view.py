@@ -307,11 +307,12 @@ class SearchButton(discord.ui.Button):
 
             view = SearchResultView(matches)
 
-             await interaction.response.send_message(
-                  embed=view.build_embed(),
-                  view=view
-             )
-        except Exception as e:
+            await interaction.response.send_message(
+                embed=view.build_embed(),
+                view=view
+            )
+
+          except Exception as e:
 
             await interaction.response.send_message(
                 f"❌ {e}",
