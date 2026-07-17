@@ -132,6 +132,8 @@ class Player2Select(discord.ui.Select):
             self.view.player2_id = value
 
         await interaction.response.defer()
+
+
 # =========================
 # Nút tìm kiếm
 # =========================
@@ -139,6 +141,7 @@ class Player2Select(discord.ui.Select):
 class SearchButton(discord.ui.Button):
 
     def __init__(self):
+
         super().__init__(
             label="🔍 Tìm kiếm",
             style=discord.ButtonStyle.green
@@ -158,40 +161,30 @@ class SearchButton(discord.ui.Button):
 
         try:
 
-            season = None
             player1 = None
             player2 = None
 
-            if self.view.season_id is not None:
-                season = db.query(Season).filter(
-                    Season.id == self.view.season_id
-                ).first()
-
-            if self.view.player1_id is not None:
-                player1 = db.query(Player).filter(
-                    Player.id == self.view.player1_id
-                ).first()
-
-            if self.view.player2_id != 0:
-                player2 = db.query(Player).filter(
-                    Player.id == self.view.player2_id
-                ).first()
-
             query = db.query(Match)
 
-            # =========================
             # Lọc theo mùa
-            # =========================
-
             if self.view.season_id is not None:
                 query = query.filter(
                     Match.season_id == self.view.season_id
                 )
 
-            # =========================
-            # Chỉ chọn Người 1
-            # =========================
+            # Lấy người chơi 1
+            if self.view.player1_id is not None:
+                player1 = db.query(Player).filter(
+                    Player.id == self.view.player1_id
+                ).first()
 
+            # Lấy người chơi 2
+            if self.view.player2_id != 0:
+                player2 = db.query(Player).filter(
+                    Player.id == self.view.player2_id
+                ).first()
+
+            # Chỉ chọn 1 người
             if player1 and self.view.player2_id == 0:
 
                 query = query.filter(
@@ -201,10 +194,7 @@ class SearchButton(discord.ui.Button):
                     )
                 )
 
-            # =========================
             # Chọn đủ 2 người
-            # =========================
-
             elif player1 and player2:
 
                 query = query.filter(
@@ -223,8 +213,9 @@ class SearchButton(discord.ui.Button):
                     )
                 )
 
-            matches = query.order_by(Match.id.desc()).all()
-
+            matches = query.order_by(
+                Match.id.desc()
+            ).all()
             if not matches:
 
                 await interaction.response.send_message(
@@ -233,78 +224,7 @@ class SearchButton(discord.ui.Button):
                 )
                 return
 
-            embed = discord.Embed(
-                title="🎥 NHÀ ĐÀI PESHUB",
-                color=discord.Color.blue()
-            )
-
-            # =========================
-            # Thông tin tìm kiếm
-            # =========================
-
-            if season:
-
-                embed.add_field(
-                    name="🏆 Mùa",
-                    value=season.name,
-                    inline=False
-                )
-
-            else:
-
-                embed.add_field(
-                    name="🏆 Mùa",
-                    value="Tất cả các mùa",
-                    inline=False
-                )
-
-            if player1 is None:
-
-                embed.add_field(
-                    name="👥 Người chơi",
-                    value="Tất cả người chơi",
-                    inline=False
-                )
-
-            elif player2:
-
-                embed.add_field(
-                    name="👥 Người chơi",
-                    value=f"{player1.name} 🆚 {player2.name}",
-                    inline=False
-                )
-
-            else:
-
-                embed.add_field(
-                    name="👤 Người chơi",
-                    value=player1.name,
-                    inline=False
-                )
-
-            description = ""
-
-            for match in matches:
-
-                p1 = db.query(Player).filter(
-                    Player.id == match.player1_id
-                ).first()
-
-                p2 = db.query(Player).filter(
-                    Player.id == match.player2_id
-                ).first()
-
-                s = db.query(Season).filter(
-                    Season.id == match.season_id
-                ).first()
-
-                description += (
-                    f"🏆 {s.name}\n"
-                    f"🥇 {match.round}\n"
-                    f"⚔ **{p1.name}** 🆚 **{p2.name}**\n"
-                    f"🎥 {match.youtube_link}\n\n"
-                )
-
+            # Hiển thị kết quả bằng View phân trang
             view = SearchResultView(matches)
 
             await interaction.response.send_message(
@@ -312,7 +232,7 @@ class SearchButton(discord.ui.Button):
                 view=view
             )
 
-          except Exception as e:
+        except Exception as e:
 
             await interaction.response.send_message(
                 f"❌ {e}",
@@ -321,6 +241,8 @@ class SearchButton(discord.ui.Button):
 
         finally:
             db.close()
+
+
 # =========================
 # Search View
 # =========================
